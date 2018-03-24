@@ -36,7 +36,8 @@ class CollectSourcesForShipmentItems
         foreach ($items as $orderItemId => $data) {
             if (!is_array($data)) {
                 //TODO: What we should do with bundle product items?
-               // $legacyItems[$orderItemId] = $data;
+                //if MSI not enabled, $data is not an array
+                $legacyItems[$orderItemId] = $data;
             } else {
                 $qtySum = 0;
                 foreach ($data as $sourceCode => $qty) {
@@ -59,7 +60,7 @@ class CollectSourcesForShipmentItems
 
         /** @var \Magento\Sales\Api\Data\ShipmentItemInterface $item */
         // TODO: https://github.com/magento-engcom/msi/issues/385
-        foreach ((array)$shipment->getItems() as $item) {
+        foreach ($shipment->getItems() as $item) {
             if (isset($itemToProcess[$item->getOrderItemId()])) {
                 $item->setSources($itemToProcess[$item->getOrderItemId()]);
             }
