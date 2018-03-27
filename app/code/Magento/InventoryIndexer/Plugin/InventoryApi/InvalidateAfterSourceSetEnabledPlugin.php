@@ -43,8 +43,7 @@ class InvalidateAfterSourceSetEnabledPlugin
         IndexerRegistry $indexerRegistry,
         GetSourceEnabled $getSourceEnabled,
         GetSourceLinked $getSourceLinked
-    )
-    {
+    ) {
         $this->indexerRegistry = $indexerRegistry;
         $this->getSourceEnabled = $getSourceEnabled;
         $this->getSourceLinked = $getSourceLinked;
@@ -63,8 +62,7 @@ class InvalidateAfterSourceSetEnabledPlugin
         SourceRepositoryInterface $subject,
         callable $proceed,
         SourceInterface $source
-    )
-    {
+    ) {
         $sourceCode = $source->getSourceCode();
         $oldStatus = $this->getSourceEnabled->execute($sourceCode);
         $proceed($source);
