@@ -8,7 +8,6 @@
 
 namespace Magento\InventoryCatalog\Model;
 
-
 /**
  * @inheritdoc
  */
