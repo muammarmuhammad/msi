@@ -8,8 +8,10 @@ declare(strict_types=1);
 namespace Magento\InventorySales\Plugin\CatalogInventory\StockManagement;
 
 use Magento\CatalogInventory\Api\Data\StockItemInterface;
+use Magento\CatalogInventory\Api\StockConfigurationInterface;
 use Magento\CatalogInventory\Model\StockManagement;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\InventoryCatalog\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryReservations\Model\ReservationBuilderInterface;
 use Magento\InventoryReservationsApi\Api\AppendReservationsInterface;
 use Magento\InventoryCatalog\Model\GetSkusByProductIdsInterface;
@@ -47,24 +49,39 @@ class ProcessRegisterProductsSalePlugin
     private $isProductSalableForRequestedQty;
 
     /**
+     * @var GetProductTypesBySkusInterface
+     */
+    private $getProductTypesBySkus;
+    /**
+     * @var StockConfigurationInterface
+     */
+    private $stockConfiguration;
+
+    /**
      * @param GetSkusByProductIdsInterface $getSkusByProductIds
      * @param StockByWebsiteIdResolver $stockByWebsiteIdResolver
      * @param ReservationBuilderInterface $reservationBuilder
      * @param AppendReservationsInterface $appendReservations
      * @param IsProductSalableForRequestedQtyInterface $isProductSalableForRequestedQty
+     * @param GetProductTypesBySkusInterface $getProductTypesBySkus
+     * @param StockConfigurationInterface $stockConfiguration
      */
     public function __construct(
         GetSkusByProductIdsInterface $getSkusByProductIds,
         StockByWebsiteIdResolver $stockByWebsiteIdResolver,
         ReservationBuilderInterface $reservationBuilder,
         AppendReservationsInterface $appendReservations,
-        IsProductSalableForRequestedQtyInterface $isProductSalableForRequestedQty
+        IsProductSalableForRequestedQtyInterface $isProductSalableForRequestedQty,
+        GetProductTypesBySkusInterface $getProductTypesBySkus,
+        StockConfigurationInterface $stockConfiguration
     ) {
         $this->getSkusByProductIds = $getSkusByProductIds;
         $this->stockByWebsiteIdResolver = $stockByWebsiteIdResolver;
         $this->reservationBuilder = $reservationBuilder;
         $this->appendReservations = $appendReservations;
         $this->isProductSalableForRequestedQty = $isProductSalableForRequestedQty;
+        $this->getProductTypesBySkus = $getProductTypesBySkus;
+        $this->stockConfiguration = $stockConfiguration;
     }
 
     /**
@@ -87,6 +104,15 @@ class ProcessRegisterProductsSalePlugin
         }
         $stockId = (int)$this->stockByWebsiteIdResolver->get((int)$websiteId)->getStockId();
         $productSkus = $this->getSkusByProductIds->execute(array_keys($items));
+
+        // skip product with types where Stock Management is not applicable
+        $productTypesBySku = $this->getProductTypesBySkus->execute($productSkus);
+        foreach ($productSkus as $productId => $sku) {
+            $type = $productTypesBySku[$sku];
+            if (!$this->stockConfiguration->isQty($type)) {
+                unset($productSkus[$productId]);
+            }
+        }
 
         $this->checkItemsQuantity($items, $productSkus, $stockId);
         $reservations = [];
